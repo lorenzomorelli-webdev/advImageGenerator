@@ -7,18 +7,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { TemplatePayload, TextLayer, UploadedFont, VariantSetRequest } from "@/lib/types";
 import React, { useMemo, useState } from "react";
 import EditorCanvas from "./EditorCanvas";
-import FontFaceInjector from "./FontFaceInjector";
+import FontFaceInjector, { toFamilyName } from "./FontFaceInjector";
 
 export default function EditorPage() {
     const [template, setTemplate] = useState<TemplatePayload>({
-        width: 1080,
-        height: 1350,
+        width: 1000,
+        height: 720,
         texts: [
             { id: "headline", text: "Titolo", x: 80, y: 200, size: 96, color: "#ffffff", maxWidth: 900 },
         ],
     });
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [csv, setCsv] = useState<string>("headline\nCiao mondo\nOfferta imperdibile");
+    const [csv, setCsv] = useState<string>("headline,text2\nCiao mondo,Salve Mondo\nOfferta imperdibile,Offertona");
     const [busy, setBusy] = useState(false);
     const [fonts, setFonts] = useState<UploadedFont[]>([]);
 
@@ -28,7 +28,7 @@ export default function EditorPage() {
     }, [csv]);
     const rows = useMemo(() => {
         const lines = csv.split(/\r?\n/).slice(1).filter(Boolean);
-        return lines.map((line) => line.split(",").map((s) => s.trim()));
+        return lines.map((line) => line.split(",").map((s) => s.trim()))
     }, [csv]);
 
     function onBgFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -59,20 +59,19 @@ export default function EditorPage() {
     async function generateToDisk() {
         setBusy(true);
         try {
-            const variants: VariantSetRequest["variants"] = rows.map((cols, idx) => {
+            const variants: VariantSetRequest["variants"] = (rows.map((cols) => {
                 const m: Record<string, string> = {};
                 headers.forEach((h, i) => (m[h] = cols[i] ?? ""));
-                return { overrideTexts: m, filename: `image_${idx + 1}.png` };
-            });
+                return m;
+            })).map((overrideTexts, idx) => ({ overrideTexts, filename: `image_${idx + 1}.png` }));
 
-            const res = await fetch("/api/generate/batch", {
+            const res = await fetch("/api/generate/batch-html", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ template, variants, fonts }),
             });
             if (!res.ok) throw new Error(await res.text());
             const data = await res.json();
-            console.log("Saved:", data);
             alert(`Salvato in: ${data.outputDir} (files: ${data.files.length})`);
         } finally {
             setBusy(false);
@@ -91,9 +90,9 @@ export default function EditorPage() {
                 />
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[calc(100vh-100px)] overflow-y-auto">
                 <div className="space-y-2">
-                    <Label>Font custom (TTF/OTF)</Label>
+                    <Label>Font custom (TTF/OTF/WOFF2)</Label>
                     <Input
                         type="file"
                         accept=".ttf,.otf,.woff,.woff2"
@@ -104,14 +103,13 @@ export default function EditorPage() {
                             for (const f of files) {
                                 const b = await f.arrayBuffer();
                                 const b64 = Buffer.from(b).toString("base64");
-                                const name = f.name.replace(/\.(ttf|otf|woff2?|TTF|OTF|WOFF2?|)$/i, "");
-                                newFonts.push({ name, dataB64: b64 });
+                                newFonts.push({ name: f.name, dataB64: b64 });
                             }
                             setFonts((prev) => [...prev, ...newFonts]);
                         }}
                     />
                     {fonts.length > 0 ? (
-                        <div className="text-xs text-muted-foreground">Caricati: {fonts.map((f) => f.name).join(", ")}</div>
+                        <div className="text-xs text-muted-foreground">Caricati: {fonts.map((f) => toFamilyName(f.name)).join(", ")}</div>
                     ) : null}
                 </div>
 
@@ -177,6 +175,14 @@ export default function EditorPage() {
                                         <Label>Max width</Label>
                                         <Input type="number" value={t.maxWidth ?? 0} onChange={(e) => updateLayer(t.id, { maxWidth: Number(e.target.value) || undefined })} />
                                     </div>
+                                    <div className="col-span-2">
+                                        <Label>Font family</Label>
+                                        <Input
+                                            placeholder="es. Inter"
+                                            value={t.fontFamily ?? ""}
+                                            onChange={(e) => updateLayer(t.id, { fontFamily: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                                 <div className="mt-2">
                                     <Label>Text</Label>
@@ -188,7 +194,7 @@ export default function EditorPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Varianti (CSV)</Label>
+                    <Label>Oppure incolla varianti (CSV)</Label>
                     <Textarea rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} />
                 </div>
 
@@ -199,4 +205,3 @@ export default function EditorPage() {
         </div>
     );
 }
-

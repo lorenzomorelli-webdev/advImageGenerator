@@ -57,6 +57,7 @@ export default function EditorCanvas({ template, onChangeTemplate, overrides, se
                             whiteSpace: "pre-wrap",
                             userSelect: "none",
                             cursor: isSel ? "move" : "pointer",
+                            textAlign: t.align ?? "left",
                         }}
                         className={isSel ? "outline outline-sky-400" : undefined}
                         id={`layer-${t.id}`}
@@ -86,4 +87,3 @@ export default function EditorCanvas({ template, onChangeTemplate, overrides, se
         </div>
     );
 }
-

@@ -8,23 +8,29 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
     try {
-        const request = (await req.json()) as { template: TemplatePayload; fonts?: UploadedFont[] };
-        const { template, fonts } = request;
+        const request = (await req.json()) as { template: TemplatePayload; fonts?: UploadedFont[]; overrideTexts?: Record<string, unknown> };
+        const { template, fonts, overrideTexts } = request;
         if (!template?.width || !template?.height || !Array.isArray(template.texts)) {
             return NextResponse.json({ error: "Invalid template" }, { status: 400 });
         }
 
         const satoriFonts = (fonts ?? []).map((f) => {
-            const buf = Buffer.from(f.dataB64, "base64");
+            const buf = Buffer.from(f.dataB64 ?? "", "base64");
             const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-            return { name: f.name, data: ab, weight: f.weight, style: f.style };
+            const safeName = (f.name ?? "Custom").toString();
+            return { name: safeName, data: ab, weight: f.weight ?? 400, style: f.style ?? "normal" };
         });
+
+        const texts = template.texts.map((t) => ({
+            ...t,
+            text: String((overrideTexts as Record<string, unknown> | undefined)?.[t.id] ?? t.text ?? ""),
+        }));
 
         const element = OGTemplate({
             width: template.width,
             height: template.height,
             backgroundDataUrl: template.backgroundDataUrl,
-            texts: template.texts,
+            texts,
         });
 
         const svg = await satori(element as unknown as React.ReactElement, {
