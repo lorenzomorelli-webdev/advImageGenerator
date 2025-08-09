@@ -115,7 +115,7 @@ export default function EditorPage() {
 
                 <div className="space-y-2">
                     <Label>Background</Label>
-                    <Input type="file" accept="image/*" onChange={onBgFile} />
+                    <Input type="file" accept="image/*" onChange={onBgFile} className="cursor-pointer" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -185,7 +185,7 @@ export default function EditorPage() {
                                     </div>
                                 </div>
                                 <div className="mt-2">
-                                    <Label>Text</Label>
+                                    <Label>Text Preview</Label>
                                     <Textarea value={t.text} onChange={(e) => updateLayer(t.id, { text: e.target.value })} />
                                 </div>
                             </div>
@@ -194,7 +194,7 @@ export default function EditorPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Oppure incolla varianti (CSV)</Label>
+                    <Label>Varianti stile CSV</Label>
                     <Textarea rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} />
                 </div>
 

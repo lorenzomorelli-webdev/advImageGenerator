@@ -2,7 +2,7 @@ import { TemplatePayload, UploadedFont } from "@/lib/types";
 import { Resvg } from "@resvg/resvg-js";
 import { NextRequest, NextResponse } from "next/server";
 import satori from "satori";
-import { OGTemplate } from "../generate/batch/template";
+import { OGTemplate } from "./batch-html/template";
 
 export const runtime = "nodejs";
 
